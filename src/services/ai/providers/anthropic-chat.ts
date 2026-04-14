@@ -10,7 +10,7 @@ export const anthropicChatProvider: ChatProvider = {
     if (!env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing");
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-    const mapped: Anthropic.MessageParam[] = messages
+    const mapped = messages
       .filter((m) => m.role !== "system")
       .map(mapMessage);
 
@@ -29,27 +29,37 @@ export const anthropicChatProvider: ChatProvider = {
   },
 };
 
+type AnyBlock = {
+  type: "text" | "image";
+  text?: string;
+  source?: {
+    type: "base64" | "url";
+    media_type?: string;
+    data?: string;
+    url?: string;
+  };
+};
+
 function mapMessage(m: ChatProviderMessage): Anthropic.MessageParam {
   const role = m.role === "assistant" ? "assistant" : "user";
   if (typeof m.content === "string") {
     return { role, content: m.content };
   }
-  const blocks: Anthropic.ContentBlockParam[] = m.content.map((p) => {
+  const blocks: AnyBlock[] = m.content.map((p) => {
     if (p.type === "text") return { type: "text", text: p.text };
-    // Vision: data URL → base64; remote URL → url source
     if (p.url.startsWith("data:")) {
       const match = /^data:(image\/(?:png|jpeg|jpg|gif|webp));base64,(.*)$/.exec(p.url);
       if (match) {
-        const media = match[1] === "image/jpg" ? "image/jpeg" : (match[1] as "image/png" | "image/jpeg" | "image/gif" | "image/webp");
+        const media = match[1] === "image/jpg" ? "image/jpeg" : match[1];
         return {
           type: "image",
           source: { type: "base64", media_type: media, data: match[2] },
         };
       }
-      // unsupported data URL format — drop silently with a text marker
       return { type: "text", text: "[unsupported inline image]" };
     }
     return { type: "image", source: { type: "url", url: p.url } };
   });
-  return { role, content: blocks };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return { role, content: blocks as any };
 }
