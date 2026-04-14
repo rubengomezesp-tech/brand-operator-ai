@@ -61,5 +61,5 @@ function mapMessage(m: ChatProviderMessage): Anthropic.MessageParam {
     return { type: "image", source: { type: "url", url: p.url } };
   });
   
-  return { role, content: blocks as any };
+  return { role, content: blocks as unknown as Anthropic.MessageParam["content"] };
 }
