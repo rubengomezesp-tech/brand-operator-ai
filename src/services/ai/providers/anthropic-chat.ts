@@ -60,6 +60,6 @@ function mapMessage(m: ChatProviderMessage): Anthropic.MessageParam {
     }
     return { type: "image", source: { type: "url", url: p.url } };
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  
   return { role, content: blocks as any };
 }
